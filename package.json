@@ -2,16 +2,15 @@
   "name": "crud-api",
   "version": "1.0.0",
   "main": "server.ts",
-  "type": "module",
   "scripts": {
     "start": "tsc && ts-node --esm src/server.ts",
     "dev": "nodemon src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate": "npx typeorm-ts-node-esm migration:run -- -d ./src/data-source.ts",
     "orm": "ts-node node_modules/typeorm/cli.js",
-    "typeorm-2": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migration:run": "npm run typeorm-2 migration:run -- -d ./src/data-source.ts",
-    "migration:generate": "npm run typeorm-2 migration:generate src/database/migrations/T -- -d ./src/data-source.ts"
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:run": "npm run typeorm migration:run -- -d ./src/data-source.ts",
+    "migration:generate": "npm run typeorm migration:generate src/migration/T -- -d ./src/data-source.ts"
   },
   "author": "abiye",
   "license": "ISC",
