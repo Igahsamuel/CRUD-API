@@ -15,6 +15,6 @@ export const AppDataSource = new DataSource({
   database: process.env.DATABASE,
   entities: [User, RefreshToken],
   synchronize: false,
-  migrations: ['./src/migration/**/*.ts'],
+  migrations: ['./src/database/migration/**/*.ts'],
   logging: false,
 });
