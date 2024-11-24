@@ -107,19 +107,12 @@ router.post('/login', async (req: Request, res: Response) => {
       }
     );
 
-    let refresh_token: any = new RefreshToken();
+    const refresh_token: any = new RefreshToken();
     refresh_token.token = refreshToken;
     refresh_token.expiration = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     refresh_token.user = user;
 
-    await AppDataSource.manager.save(RefreshToken, refresh_token);
-
-    await AppDataSource.manager.find(RefreshToken, {
-      where: { id: user.id },
-      relations: ['user'],
-    });
-
-    await AppDataSource.manager.delete(RefreshToken, { user: { id: user.id } });
+    await AppDataSource.manager.save(refresh_token);
 
     res.status(200).json({
       status: 'success',
@@ -144,50 +137,73 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
       return;
     }
 
+    // decide and verify the token
     const decodedRefreshToken = jwt.verify(
       refreshToken,
       process.env.REFRESHTOKEN!
-    );
+    ) as JwtPayload;
 
+    // finding the token in the database
     const userRefreshToken = await AppDataSource.manager.findOne(RefreshToken, {
       where: { token: refreshToken },
+      relations: ['user'],
     });
 
+    if (userRefreshToken?.user && typeof userRefreshToken?.user !== 'object') {
+      const user = await AppDataSource.manager.findOne(User, {
+        where: { id: userRefreshToken.id },
+      });
+      if (!user) {
+        res.status(404).json({ message: 'User not found' });
+        return;
+      }
+      userRefreshToken.user = user;
+    }
+
     console.log(userRefreshToken);
+
     if (!userRefreshToken) {
-      res.status(401).json({ message: 'The token is not valid' });
+      res.status(401).json({ message: 'Token is invalid or has expired' });
       return;
     }
 
+    // remove the old refresh token from the database
     await AppDataSource.manager.remove(userRefreshToken);
 
+    // Generating new access and refresh token
     const accessToken = jwt.sign(
-      { token: (decodedRefreshToken as JwtPayload).token },
+      { token: decodedRefreshToken.token },
       process.env.SECRETTOKEN!,
       { expiresIn: process.env.EXPIRESIN }
     );
 
     const newRefreshToken = jwt.sign(
-      { token: (decodedRefreshToken as JwtPayload).token },
+      { token: decodedRefreshToken.token },
       process.env.REFRESHTOKEN!,
       { expiresIn: process.env.REFRESHEXPIRES }
     );
 
-    await AppDataSource.manager.save({
-      refreshToken: newRefreshToken,
-      token: (decodedRefreshToken as JwtPayload).token,
-    });
+    // saving the new refreshtoken in the database
 
+    const newTokenEntity = new RefreshToken();
+    newTokenEntity.token = newRefreshToken;
+    newTokenEntity.expiration = new Date(
+      Date.now() + parseInt(process.env.REFRESHEXPIRES!, 10) * 1000
+    );
+    newTokenEntity.user = userRefreshToken!.user;
+    await AppDataSource.manager.save(newTokenEntity);
+
+    // returns the new token
     res.status(200).json({
       status: 'success',
       accessToken,
       refreshToken: newRefreshToken,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
     if (
-      error instanceof jwt.JsonWebTokenError ||
-      error instanceof jwt.TokenExpiredError
+      error.name === jwt.JsonWebTokenError ||
+      error.name === jwt.TokenExpiredError
     ) {
       res.status(401).json({
         status: 'unauthorized',
@@ -200,6 +216,28 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
       message: 'An Error Occured',
     });
     return;
+  }
+});
+
+// logout route
+router.get('/logout', authenticated, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      res.status(401).json({ message: 'No token found' });
+    }
+    await AppDataSource.manager.delete(RefreshToken, { token });
+    res.status(200).json({
+      status: 'success',
+      message: 'Logout Successful',
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      status: 'fail',
+      message: 'An error occured',
+    });
   }
 });
 

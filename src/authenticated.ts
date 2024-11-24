@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtHeader } from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,7 +15,7 @@ const authenticated = async (
     return;
   }
   const token = header.split(' ')[1];
-  console.log(token);
+  // console.log(token);
   if (!token) {
     res.status(401).json({ message: 'unauthorized' });
     return;
@@ -28,6 +28,7 @@ const authenticated = async (
       });
       return;
     }
+    (req as any).header = { value: header, exp: (decoded as any).exp };
     (req as any).user = decoded;
     next();
   } catch (error: any) {
