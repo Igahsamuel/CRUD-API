@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtHeader } from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { AppDataSource } from './data-source';
+import { BlackListToken } from './entity/BlackListToken';
 
 dotenv.config();
 
@@ -19,6 +21,15 @@ const authenticated = async (
   if (!token) {
     res.status(401).json({ message: 'unauthorized' });
     return;
+  }
+
+  if (
+    await AppDataSource.manager.findOne(BlackListToken, { where: { token } })
+  ) {
+    res.status(401).json({
+      status: 'Access  token invalid',
+      message: 'AccessTokenInvalid',
+    });
   }
   try {
     const decoded = jwt.verify(token, process.env.SECRETTOKEN!);

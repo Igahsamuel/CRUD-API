@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import authenticated from './authenticated';
 import isAdmin from './isAdmin';
 import { RefreshToken } from './entity/RefreshToken';
+import { BlackListToken } from './entity/BlackListToken';
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.get('/users', async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({
       status: 'fail',
       message: 'Error fetching users',
@@ -160,7 +161,7 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
       userRefreshToken.user = user;
     }
 
-    console.log(userRefreshToken);
+    // console.log(userRefreshToken);
 
     if (!userRefreshToken) {
       res.status(401).json({ message: 'Token is invalid or has expired' });
@@ -219,28 +220,6 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
   }
 });
 
-// logout route
-router.get('/logout', authenticated, async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      res.status(401).json({ message: 'No token found' });
-    }
-    await AppDataSource.manager.delete(RefreshToken, { token });
-    res.status(200).json({
-      status: 'success',
-      message: 'Logout Successful',
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      status: 'fail',
-      message: 'An error occured',
-    });
-  }
-});
-
 // current User
 router.get(
   '/currentuser',
@@ -266,6 +245,38 @@ router.get(
     }
   }
 );
+
+// logout route
+router.get('/logout', authenticated, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const token = req.headers.authorization?.split(' ')[1];
+    await AppDataSource.manager.delete(RefreshToken, { id: user.id });
+    if (!token) {
+      res.status(401).json({ message: 'No token found' });
+      return;
+    }
+
+    const blackListTokenEntity = new BlackListToken();
+    (blackListTokenEntity.token = token),
+      (blackListTokenEntity.user = user),
+      (blackListTokenEntity.expiration = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ));
+    await AppDataSource.manager.save(blackListTokenEntity);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Logout Successful',
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      status: 'fail',
+      message: 'An error occured',
+    });
+  }
+});
 
 // admin route
 router.get(

@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { RefreshToken } from './RefreshToken';
+import { BlackListToken } from './BlackListToken';
 
 @Entity()
 export class User {
@@ -18,4 +19,6 @@ export class User {
   role!: string;
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   refreshToken!: RefreshToken[];
+  @OneToMany(() => BlackListToken, (blackListToken) => blackListToken.user)
+  blackListToken!: BlackListToken[];
 }
