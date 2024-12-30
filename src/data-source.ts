@@ -4,6 +4,7 @@ import { User } from './entity/User';
 import dotenv from 'dotenv';
 import { RefreshToken } from './entity/RefreshToken';
 import { BlackListToken } from './entity/BlackListToken';
+import { QRcode } from './entity/QRcode';
 
 dotenv.config();
 
@@ -14,7 +15,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DATABASE,
-  entities: [User, RefreshToken, BlackListToken],
+  entities: [User, RefreshToken, BlackListToken, QRcode],
   synchronize: false,
   migrations: ['./src/database/migration/**/*.ts'],
   logging: true,

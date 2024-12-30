@@ -9,8 +9,8 @@ AppDataSource.initialize()
   .then(async () => {
     console.log('Inserting a new user into the database...');
   })
-  .catch((error) => console.log(error));
 
+  .catch((error) => console.log(error));
 const port = process.env.PORT || 8050;
 const app = express();
 

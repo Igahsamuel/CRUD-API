@@ -30,6 +30,7 @@ const authenticated = async (
       status: 'Access  token invalid',
       message: 'AccessTokenInvalid',
     });
+    return;
   }
   try {
     const decoded = jwt.verify(token, process.env.SECRETTOKEN!);
